@@ -1017,6 +1017,132 @@ input[type='date'].input {
   color: var(--danger);
 }
 
+/* ---------- catalog sync ---------- */
+
+.sync-status {
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: #e9f5ec;
+  color: #1f6b3a;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.sync-status--dirty {
+  background: var(--warn-bg);
+  color: #7a5a00;
+}
+
+.sync-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  counter-reset: step;
+}
+
+.sync-steps li {
+  display: grid;
+  grid-template-columns: 26px 150px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--muted);
+  counter-increment: step;
+}
+
+.sync-steps li::before {
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--brand-50);
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.diff {
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.diff__title {
+  font-weight: 700;
+}
+
+.diff--add .diff__title {
+  color: #1f6b3a;
+}
+
+.diff--remove .diff__title {
+  color: var(--danger);
+}
+
+.diff ul,
+.error-list {
+  margin: 4px 0 0;
+  padding-inline-start: 20px;
+}
+
+.setup {
+  display: grid;
+  gap: 22px;
+}
+
+.setup h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: var(--brand);
+}
+
+.setup p {
+  margin: 0 0 10px;
+}
+
+.password-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.howto {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--brand-50);
+  font-size: 14px;
+}
+
+.howto summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--brand);
+}
+
+.howto ol,
+.manual-steps {
+  margin: 8px 0 0;
+  padding-inline-start: 22px;
+  display: grid;
+  gap: 6px;
+}
+
+.banner--sync {
+  flex-wrap: wrap;
+  background: #fff6e0;
+  border-bottom-color: var(--warn-line);
+  font-weight: 400;
+}
+
+.input--inline {
+  width: 180px;
+  min-height: 34px;
+  padding-block: 4px;
+}
+
 /* ---------- modal ---------- */
 
 .modal-backdrop {
@@ -1054,6 +1180,7 @@ input[type='date'].input {
 .modal__foot {
   border-top: 1px solid var(--line);
   justify-content: flex-end;
+  gap: 8px;
 }
 
 .modal__title {
@@ -1255,5 +1382,13 @@ input[type='date'].input {
 
   .catalog-row {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sync-steps li {
+    grid-template-columns: 26px minmax(0, 1fr);
+  }
+
+  .sync-steps li > span {
+    grid-column: 2;
   }
 }

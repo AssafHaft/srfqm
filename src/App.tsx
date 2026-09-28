@@ -6,6 +6,7 @@ import { ready, storageAvailable } from './store/store';
 import { CatalogView } from './views/CatalogView';
 import { QuoteEditor } from './views/QuoteEditor';
 import { QuotesList } from './views/QuotesList';
+import { RemoteCatalogBanner } from './views/RemoteCatalogBanner';
 import { SettingsView } from './views/SettingsView';
 
 /** Set by the service worker when a new version has been downloaded. */
@@ -47,6 +48,8 @@ export function App() {
           </button>
         </div>
       )}
+
+      {ready.value && <RemoteCatalogBanner />}
 
       <main class="main">
         {!ready.value ? (
