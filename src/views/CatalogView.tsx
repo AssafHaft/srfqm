@@ -10,6 +10,7 @@ import { href } from '../router';
 import { downloadJson } from '../store/backup';
 import { catalog, deleteCatalogItem, deleteCategory, exportData, setCategories, settings, upsertCatalogItem } from '../store/store';
 import { ImportButton } from './ImportButton';
+import { PackagesCard } from './PackagesCard';
 import { backupFileName } from './QuotesList';
 
 export function CatalogView() {
@@ -46,6 +47,8 @@ export function CatalogView() {
           <a href={href.settings}>שינוי בהגדרות</a>).
         </span>
       </div>
+
+      <PackagesCard />
 
       <CategoriesCard categories={categories} />
 

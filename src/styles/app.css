@@ -934,6 +934,89 @@ input[type='date'].input {
   gap: 8px;
 }
 
+/* ---------- packages ---------- */
+
+.package {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfcfc;
+}
+
+.package + .package {
+  margin-top: 8px;
+}
+
+.package__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.package__summary::-webkit-details-marker {
+  display: none;
+}
+
+.package__name {
+  font-weight: 700;
+}
+
+.package__meta {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.package__body {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 12px;
+}
+
+.package__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.package__items li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 36px;
+  align-items: center;
+  gap: 8px;
+}
+
+.package__item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.package__item-name small {
+  color: var(--muted);
+}
+
+.package__qty .input {
+  min-height: 36px;
+  padding-block: 5px;
+}
+
+.package__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn--danger {
+  color: var(--danger);
+}
+
 /* ---------- modal ---------- */
 
 .modal-backdrop {

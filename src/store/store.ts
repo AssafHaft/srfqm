@@ -3,9 +3,10 @@ import { newId } from '../lib/ids';
 import { todayISO } from '../lib/dates';
 import { sortByCategory } from '../lib/items';
 import { takeQuoteNumber } from '../lib/numbering';
+import { mergeLines, packageFromLines, packageLines, type CatalogContext } from '../lib/packages';
 import { DEFAULT_CATALOG, DEFAULT_SETTINGS, OTHER_CATEGORY_ID } from '../model/defaults';
 import { normalizeCatalog, normalizeQuote, normalizeSettings } from '../model/normalize';
-import type { Catalog, CatalogItem, Category, LineItem, Quote, Settings } from '../model/types';
+import type { Catalog, CatalogItem, Category, LineItem, Package, Quote, Settings } from '../model/types';
 import { buildBackup, type BackupFile, type BackupKind } from './backup';
 import { QUOTE_PREFIX, flushSaves, loadAll, replaceAll, requestPersistence, scheduleSave } from './db';
 
@@ -170,6 +171,38 @@ export function addCatalogItemToQuote(quoteId: string, item: CatalogItem): void 
   });
 }
 
+// ---------- packages ----------
+
+export function catalogContext(): CatalogContext {
+  return { items: catalog.value.items, pricesIncludeVat: settings.value.catalogPricesIncludeVat };
+}
+
+/** Adds every line of a package to a quote (catalog items already in the quote get their quantity raised). */
+export function addPackageToQuote(quoteId: string, pkg: Package): void {
+  const lines = packageLines(pkg, catalogContext());
+  updateQuote(quoteId, (q) => {
+    q.items = sortByCategory(mergeLines(q.items, lines), catalog.value.categories);
+  });
+}
+
+export function savePackageFromQuote(quoteId: string, name: string): Package | undefined {
+  const q = getQuote(quoteId);
+  if (!q || q.items.length === 0 || !name.trim()) return undefined;
+  const pkg = packageFromLines(name, sortByCategory(q.items, catalog.value.categories), catalogContext(), q.vatRate);
+  upsertPackage(pkg);
+  return pkg;
+}
+
+export function upsertPackage(pkg: Package): void {
+  const list = catalog.value.packages;
+  const exists = list.some((p) => p.id === pkg.id);
+  putCatalog({ ...catalog.value, packages: exists ? list.map((p) => (p.id === pkg.id ? pkg : p)) : [...list, pkg] });
+}
+
+export function deletePackage(id: string): void {
+  putCatalog({ ...catalog.value, packages: catalog.value.packages.filter((p) => p.id !== id) });
+}
+
 // ---------- catalog ----------
 
 function putCatalog(next: Catalog): void {
@@ -195,6 +228,7 @@ export function deleteCategory(id: string): void {
   if (id === OTHER_CATEGORY_ID) return;
   const c = catalog.value;
   putCatalog({
+    ...c,
     categories: c.categories.filter((x) => x.id !== id),
     items: c.items.map((i) => (i.categoryId === id ? { ...i, categoryId: OTHER_CATEGORY_ID } : i)),
   });

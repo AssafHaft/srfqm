@@ -24,4 +24,5 @@ export const DEFAULT_CATALOG: Catalog = {
     { id: OTHER_CATEGORY_ID, name: 'שונות' },
   ],
   items: [],
+  packages: [],
 };

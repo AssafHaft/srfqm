@@ -14,9 +14,32 @@ export interface CatalogItem {
   price: number;
 }
 
+/**
+ * One line of a package. Items linked to the catalog (`catalogId`) always use the catalog's current
+ * name and price; the snapshot fields are used for one-off items or if the catalog item was deleted.
+ */
+export interface PackageItem {
+  catalogId?: string;
+  qty: number;
+  categoryId: string;
+  name: string;
+  description: string;
+  unitPrice: number;
+  priceIncludesVat: boolean;
+}
+
+/** A ready-made offer (e.g. birthday party) that adds several lines to a quote in one click. */
+export interface Package {
+  id: string;
+  name: string;
+  description: string;
+  items: PackageItem[];
+}
+
 export interface Catalog {
   categories: Category[];
   items: CatalogItem[];
+  packages: Package[];
 }
 
 export interface LineItem {

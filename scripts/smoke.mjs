@@ -74,6 +74,11 @@ await page.getByRole('button', { name: 'סיום' }).click();
 const qtyAfter = await page.locator('.item-card').first().getByLabel('כמות').inputValue();
 expect(qtyAfter === '2', `catalog add bumps quantity (got ${qtyAfter})`);
 
+step('save the items as a package');
+await page.getByRole('button', { name: 'שמירת הפריטים כחבילה' }).click();
+await page.getByLabel('שם החבילה').fill('חבילת תאורה');
+await page.getByRole('button', { name: 'שמירה', exact: true }).click();
+
 step('many items paginate onto a second page');
 for (let i = 0; i < 12; i++) await addItem(`פריט נוסף ${i + 1}`, 'תיאור קצר', 1, 10);
 const pages = await page.locator('.preview .qd-page').count();
@@ -97,6 +102,19 @@ await page.getByRole('button', { name: 'הצעה חדשה' }).click();
 await page.getByRole('link', { name: 'חזרה לרשימה' }).click();
 await page.waitForFunction(() => document.querySelectorAll('.quote-row').length === 2, null, { timeout: 3000 });
 await page.screenshot({ path: `${out}/quotes-list.png` });
+
+step('packages: add to a new quote, manage on the catalog page');
+await page.getByRole('button', { name: 'הצעה חדשה' }).click();
+await page.getByLabel('שם הלקוח / האירוע').fill('לקוח חבילה');
+await page.getByRole('button', { name: 'הוספת חבילה' }).click();
+await page.locator('.picker-item', { hasText: 'חבילת תאורה' }).click();
+expect((await page.locator('.item-card').count()) === 3, 'package added 3 items');
+expect((await grand()) === '₪4,525.60', `package quote total ${await grand()}`);
+await page.goto(`${base}#/catalog`);
+await page.locator('.package__summary', { hasText: 'חבילת תאורה' }).click();
+await page.getByLabel('כמות: התקנה').fill('2');
+expect((await page.locator('.package__meta').innerText()).includes('₪5,525.60'), 'package total updates with quantity');
+await page.screenshot({ path: `${out}/packages.png` });
 
 step('mobile layout');
 const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });

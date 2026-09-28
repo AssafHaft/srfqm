@@ -13,7 +13,7 @@ export function ImportButton({ label }: { label: string }) {
       const data = parseBackup(await file.text());
       const message =
         data.kind === 'catalog'
-          ? `לטעון את המחירון מהקובץ (${data.catalog.items.length} פריטים)? הקטלוג הנוכחי יוחלף.`
+          ? `לטעון את המחירון מהקובץ (${data.catalog.items.length} פריטים, ${data.catalog.packages.length} חבילות)? הקטלוג והחבילות הנוכחיים יוחלפו.`
           : `לשחזר את הגיבוי? כל הנתונים במכשיר זה (${quotes.value.length} הצעות, קטלוג והגדרות) יוחלפו בתוכן הקובץ (${data.quotes?.length ?? 0} הצעות).`;
       if (!confirm(message)) return;
       await importData(data);

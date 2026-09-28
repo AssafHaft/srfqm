@@ -5,6 +5,7 @@ import { standardTerms } from '../brand/brand';
 import { Icon } from '../components/icons';
 import { AutoTextArea, Field, NumberField, NumberInput, Segmented, SelectField, TextField } from '../components/inputs';
 import { Modal } from '../components/Modal';
+import { PackagePicker, SavePackageModal } from './PackageModals';
 import { toast } from '../components/toast';
 import { buildDocModel, type DocModel } from '../doc/model';
 import { PAGE_HEIGHT_PX, PAGE_WIDTH_PX } from '../doc/geometry';
@@ -44,7 +45,8 @@ export function QuoteEditor({ id }: { id: string }) {
   const quote = getQuote(id);
   const categories = catalog.value.categories;
   const [tab, setTab] = useState<'edit' | 'preview'>('edit');
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [modal, setModal] = useState<null | 'catalog' | 'package' | 'save-package'>(null);
+  const closeModal = useCallback(() => setModal(null), []);
   const update = useCallback<Update>((recipe) => updateQuote(id, recipe), [id]);
   useEffect(() => () => discardIfPristine(id), [id]);
 
@@ -90,7 +92,14 @@ export function QuoteEditor({ id }: { id: string }) {
       <div class="editor__body">
         <div class="editor__form">
           <CustomerSection quote={quote} update={update} />
-          <ItemsSection quote={quote} categories={categories} update={update} onAddFromCatalog={() => setPickerOpen(true)} />
+          <ItemsSection
+            quote={quote}
+            categories={categories}
+            update={update}
+            onAddFromCatalog={() => setModal('catalog')}
+            onAddPackage={() => setModal('package')}
+            onSavePackage={() => setModal('save-package')}
+          />
           <PricingSection quote={quote} update={update} model={model} />
           <NotesSection quote={quote} update={update} validUntil={model.validUntil} />
           <DetailsSection quote={quote} update={update} />
@@ -100,7 +109,9 @@ export function QuoteEditor({ id }: { id: string }) {
         </div>
       </div>
 
-      {pickerOpen && <CatalogPicker quoteId={quote.id} onClose={() => setPickerOpen(false)} />}
+      {modal === 'catalog' && <CatalogPicker quoteId={quote.id} onClose={closeModal} />}
+      {modal === 'package' && <PackagePicker quote={quote} onClose={closeModal} />}
+      {modal === 'save-package' && <SavePackageModal quote={quote} onClose={closeModal} />}
     </div>
   );
 }
@@ -236,11 +247,15 @@ function ItemsSection({
   categories,
   update,
   onAddFromCatalog,
+  onAddPackage,
+  onSavePackage,
 }: {
   quote: Quote;
   categories: Category[];
   update: Update;
   onAddFromCatalog: () => void;
+  onAddPackage: () => void;
+  onSavePackage: () => void;
 }) {
   const groups = groupItems(quote.items, categories);
   const sorted = sortByCategory(quote.items, categories);
@@ -286,10 +301,20 @@ function ItemsSection({
           <Icon name="box" />
           הוספה מהקטלוג
         </button>
+        <button type="button" class="btn btn--primary-soft" onClick={onAddPackage}>
+          <Icon name="package" />
+          הוספת חבילה
+        </button>
         <button type="button" class="btn" onClick={addCustom}>
           <Icon name="plus" />
           פריט חד-פעמי
         </button>
+        {quote.items.length > 0 && (
+          <button type="button" class="btn btn--ghost" onClick={onSavePackage}>
+            <Icon name="bookmark" />
+            שמירת הפריטים כחבילה
+          </button>
+        )}
       </div>
     </Section>
   );

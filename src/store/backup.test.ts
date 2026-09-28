@@ -21,6 +21,14 @@ describe('backup files', () => {
     expect(parsed.catalog.items[0].id).toBeTruthy();
   });
 
+  it('keeps packages in price-list files and defaults them for older files', () => {
+    const pkg = { id: 'p1', name: 'יום הולדת', description: '', items: [{ catalogId: 'x', qty: 12, categoryId: 'events', name: 'שיעור', description: '', unitPrice: 150, priceIncludesVat: true }] };
+    const file = buildBackup('catalog', { settings: DEFAULT_SETTINGS, catalog: { ...DEFAULT_CATALOG, packages: [pkg] }, quotes: [] });
+    expect(parseBackup(JSON.stringify(file)).catalog.packages).toEqual([pkg]);
+    const old = parseBackup(JSON.stringify({ app: 'srfqm', kind: 'catalog', version: 1, catalog: { categories: [], items: [] } }));
+    expect(old.catalog.packages).toEqual([]);
+  });
+
   it('rejects files that are not backups', () => {
     expect(() => parseBackup('not json')).toThrow(BackupError);
     expect(() => parseBackup('{"hello":1}')).toThrow(BackupError);

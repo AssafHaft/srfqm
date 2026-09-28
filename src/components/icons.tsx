@@ -19,6 +19,7 @@ const PATHS = {
   eye: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
   edit: 'M4 20h4L19 9l-4-4L4 16zM13 7l4 4',
   alert: 'M12 4l9 16H3zM12 10v4M12 17h.01',
+  package: 'M4 9h16v11H4zM3 5h18v4H3zM12 5v15M12 5c-1.5-3-5-3-5-.5S10 5 12 5zm0 0c1.5-3 5-3 5-.5S14 5 12 5z',
 } as const;
 
 export type IconName = keyof typeof PATHS;

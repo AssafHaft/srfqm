@@ -10,6 +10,7 @@ exports quotes as PDFs that match the approved sample design. The interface is i
 ## Using it
 
 1. **Catalog (קטלוג):** add your items and default prices, or load a price-list file.
+   Ready-made **packages** (e.g. a birthday party) are managed there too, or saved from any quote's items.
 2. **New quote (הצעה חדשה):** fill in the customer and event, then add items from the catalog or as one-off items,
    set VAT display and any discount, and add notes. The preview updates live.
 3. **Save as PDF (שמירה כ-PDF):** the print dialog opens; choose **Save as PDF**. Use Chrome or Edge for identical

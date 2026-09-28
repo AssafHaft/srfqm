@@ -1,7 +1,7 @@
 import { newId } from '../lib/ids';
 import { todayISO } from '../lib/dates';
 import { DEFAULT_CATALOG, DEFAULT_SETTINGS, OTHER_CATEGORY_ID } from './defaults';
-import type { Catalog, CatalogItem, Category, Discount, LineItem, Quote, QuoteStatus, Settings } from './types';
+import type { Catalog, CatalogItem, Category, Discount, LineItem, Package, PackageItem, Quote, QuoteStatus, Settings } from './types';
 
 /**
  * Defensive normalizers: data comes from IndexedDB or user-supplied JSON files, possibly written
@@ -56,7 +56,33 @@ export function normalizeCatalog(v: unknown): Catalog {
   const items = (Array.isArray(o.items) ? o.items : [])
     .map(normalizeCatalogItem)
     .filter((i): i is CatalogItem => i !== null);
-  return { categories, items };
+  const packages = (Array.isArray(o.packages) ? o.packages : [])
+    .map(normalizePackage)
+    .filter((p): p is Package => p !== null);
+  return { categories, items, packages };
+}
+
+function normalizePackageItem(v: unknown): PackageItem | null {
+  if (!isObj(v)) return null;
+  return {
+    catalogId: typeof v.catalogId === 'string' ? v.catalogId : undefined,
+    qty: num(v.qty, 1),
+    categoryId: str(v.categoryId, OTHER_CATEGORY_ID),
+    name: str(v.name),
+    description: str(v.description),
+    unitPrice: num(v.unitPrice),
+    priceIncludesVat: bool(v.priceIncludesVat, true),
+  };
+}
+
+function normalizePackage(v: unknown): Package | null {
+  if (!isObj(v)) return null;
+  return {
+    id: str(v.id) || newId(),
+    name: str(v.name, 'חבילה'),
+    description: str(v.description),
+    items: (Array.isArray(v.items) ? v.items : []).map(normalizePackageItem).filter((i): i is PackageItem => i !== null),
+  };
 }
 
 function normalizeLine(v: unknown): LineItem | null {

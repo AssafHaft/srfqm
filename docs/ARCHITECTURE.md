@@ -108,7 +108,9 @@ numbering and validity dates, autosave, quotes list with duplicate and status, J
 installable offline PWA, Hebrew RTL UI for phone, tablet and desktop.
 
 **Phase 2: in suggested priority order**
-1. Ready-made packages (birthday, corporate event): add a set of catalog items in one click; "save these items as a package".
+1. ~~Ready-made packages~~ (done): a package adds a set of items to a quote in one click. Create one with
+   "שמירת הפריטים כחבילה" in the editor, or on the catalog page. Catalog-linked items always use current catalog
+   prices. Packages travel with the price-list file.
 2. Share: WhatsApp and email with the PDF, using the Web Share API on phones.
 3. Drag-and-drop reordering, in addition to the arrow buttons.
 4. Internal cost per catalog item and a margin readout in the editor. It stays local and never appears on the PDF.
