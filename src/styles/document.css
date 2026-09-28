@@ -275,6 +275,7 @@
 .qd-totals__row--grand .qd-totals__value {
   align-self: stretch;
   margin-bottom: -2px;
+  padding-bottom: 2px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
