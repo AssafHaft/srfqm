@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dev-dist/
+*.log
+.DS_Store
+# Never commit real price lists, backups or exported quotes (the repository is public)
+*.backup.json
+backups/
+test-output/
