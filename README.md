@@ -4,12 +4,15 @@ Branded quote maker for the surf park. It runs as a static, installable web app 
 exports quotes as PDFs that match the approved sample design. The interface is in Hebrew (RTL).
 
 - **Architecture, trade-offs, privacy model and roadmap:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- The price list, quotes and customer data stay in the browser on each device and in backup files you export.
-  They are never stored in this public repository or on the site.
+- **Updating the catalog on every device (Excel → publish):** [docs/CATALOG-GUIDE.md](docs/CATALOG-GUIDE.md)
+  (Hebrew, step by step, no Git knowledge needed).
+- The catalog is published to the site **encrypted with a password**. Quotes and customer data stay in the browser
+  on each device and in backup files you export; they are never uploaded.
 
 ## Using it
 
-1. **Catalog (קטלוג):** add your items and default prices, or load a price-list file.
+1. **Catalog (קטלוג):** add your items and default prices in the app, or export to Excel, edit, and import.
+   Then press **פרסום לאתר** so every device gets the same catalog.
    Ready-made **packages** (e.g. a birthday party) are managed there too, or saved from any quote's items.
 2. **New quote (הצעה חדשה):** fill in the customer and event, then add items from the catalog or as one-off items,
    set VAT display and any discount, and add notes. The preview updates live.

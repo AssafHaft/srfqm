@@ -1,18 +1,26 @@
 // End-to-end smoke test of the built app in headless Chromium.
 // Usage: npm run build && npx vite preview --port 4173 & node scripts/smoke.mjs [baseUrl] [outDir]
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { chromium } from 'playwright';
+import readExcelFile from 'read-excel-file/universal';
+import writeExcelFile from 'write-excel-file/universal';
 
 const base = process.argv[2] ?? 'http://localhost:4173/';
 const out = process.argv[3] ?? 'test-output';
 mkdirSync(out, { recursive: true });
 
 const errors = [];
+const hasCatalogItem = (p, name) =>
+  p.waitForFunction((n) => [...document.querySelectorAll('.catalog-row input')].some((i) => i.value === n), name, { timeout: 5000 });
 const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'he-IL' });
+// Start as a device that has never seen a published catalog, even if the build contains one.
+await context.route('**/catalog.enc.json*', (r) => r.fulfill({ status: 404, body: '' }));
 const page = await context.newPage();
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
-page.on('console', (m) => m.type() === 'error' && errors.push(`console: ${m.text()}`));
+// A missing published catalog / GitHub file is an expected 404, not an error.
+const expected404 = (m) => /catalog\.enc\.json|api\.github\.com/.test(m.location().url ?? '');
+page.on('console', (m) => m.type() === 'error' && !expected404(m) && errors.push(`console: ${m.text()} ${m.location().url}`));
 page.on('dialog', (d) => d.accept());
 
 const step = (name) => console.log(`• ${name}`);
@@ -116,8 +124,71 @@ await page.getByLabel('כמות: התקנה').fill('2');
 expect((await page.locator('.package__meta').innerText()).includes('₪5,525.60'), 'package total updates with quantity');
 await page.screenshot({ path: `${out}/packages.png` });
 
+step('catalog: export to Excel, edit, import with preview');
+await page.goto(`${base}#/catalog`);
+const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'ייצוא לאקסל' }).click()]);
+const exported = readFileSync(await download.path());
+const sheets = await readExcelFile(new Blob([exported]));
+const products = sheets.find((x) => x.sheet === 'מוצרים');
+expect(products && products.data.length >= 2, 'exported products sheet has rows');
+products.data[1][3] = 999; // change a price
+products.data.push(['השכרת ציוד', 'גלשן בוגי', 'השכרה ליום', 60, null]); // new product in a new category
+const edited = await writeExcelFile(sheets.map((x) => ({ sheet: x.sheet, data: x.data }))).toBlob();
+writeFileSync(`${out}/edited-catalog.xlsx`, Buffer.from(await edited.arrayBuffer()));
+await page.locator('input[type=file][accept*=".xlsx"]').setInputFiles(`${out}/edited-catalog.xlsx`);
+await page.getByText('מוצרים חדשים (1)').waitFor();
+expect(await page.getByText('קטגוריות חדשות (1)').isVisible(), 'preview lists the new category');
+await page.screenshot({ path: `${out}/excel-import-preview.png` });
+await page.getByRole('button', { name: 'עדכון הקטלוג' }).click();
+await hasCatalogItem(page, 'גלשן בוגי');
+const statusText = await page.locator('.sync-status').innerText();
+expect(statusText.includes('לא פורסמו'), `catalog marked as not published (got: ${statusText})`);
+
+step('catalog: publish encrypted file to GitHub (API mocked)');
+let published = null;
+await page.route('https://api.github.com/repos/AssafHaft/srfqm', (r) => r.fulfill({ json: { permissions: { push: true } } }));
+await page.route('https://api.github.com/repos/AssafHaft/srfqm/contents/**', async (r) => {
+  if (r.request().method() === 'GET') return r.fulfill({ status: 404, json: { message: 'Not Found' } });
+  const body = r.request().postDataJSON();
+  expect(r.request().headers().authorization === 'Bearer github_pat_test', 'token sent');
+  published = JSON.parse(Buffer.from(body.content, 'base64').toString('utf8'));
+  return r.fulfill({ status: 201, json: { content: { sha: 'abc' } } });
+});
+await page.getByRole('button', { name: 'פרסום לאתר' }).click(); // not configured yet → opens setup
+await page.getByLabel('סיסמת הקטלוג').fill('surf-2026');
+await page.getByLabel('מפתח גישה ל-GitHub').fill('github_pat_test');
+await page.getByRole('button', { name: 'בדיקת חיבור' }).click();
+await page.getByText('החיבור ל-GitHub תקין').waitFor();
+await page.screenshot({ path: `${out}/publish-setup.png` });
+await page.getByRole('button', { name: 'שמירה', exact: true }).click();
+await page.getByRole('button', { name: 'פרסום לאתר' }).click();
+await page.getByText('הקטלוג פורסם!').waitFor();
+expect(published && published.kind === 'catalog-encrypted', 'encrypted file committed');
+expect(!JSON.stringify(published).includes('גלשן'), 'published file does not reveal the catalog');
+expect((await page.locator('.sync-status').innerText()).includes('הקטלוג מעודכן'), 'status shows published');
+await page.screenshot({ path: `${out}/catalog-sync.png` });
+
+step('another device loads the published catalog with the password');
+const device2 = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const d2 = await device2.newPage();
+d2.on('pageerror', (e) => errors.push(`device2 pageerror: ${e.message}`));
+await d2.route('**/catalog.enc.json*', (r) => r.fulfill({ json: published }));
+await d2.goto(`${base}#/catalog`);
+await d2.getByLabel('סיסמת הקטלוג').fill('wrong-password');
+await d2.getByRole('button', { name: 'טעינה', exact: true }).click();
+await d2.getByText('הסיסמה שגויה').waitFor();
+await d2.getByLabel('סיסמת הקטלוג').fill('surf-2026');
+await d2.getByRole('button', { name: 'טעינה', exact: true }).click();
+await hasCatalogItem(d2, 'גלשן בוגי');
+expect(await d2.getByRole('heading', { name: 'השכרת ציוד' }).isVisible(), 'new category arrived');
+await d2.reload();
+await hasCatalogItem(d2, 'גלשן בוגי');
+expect(!(await d2.locator('.banner--sync').isVisible()), 'no password prompt once synced');
+await device2.close();
+
 step('mobile layout');
 const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+await mobile.route('**/catalog.enc.json*', (r) => r.fulfill({ status: 404, body: '' }));
 const m = await mobile.newPage();
 m.on('pageerror', (e) => errors.push(`mobile pageerror: ${e.message}`));
 await m.goto(base);

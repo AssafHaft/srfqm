@@ -1,17 +1,14 @@
 import { useState } from 'preact/hooks';
 import { Icon } from '../components/icons';
 import { AutoTextArea, NumberInput } from '../components/inputs';
-import { toast } from '../components/toast';
 import { newId } from '../lib/ids';
 import { effectiveCategoryId } from '../lib/items';
 import { OTHER_CATEGORY_ID } from '../model/defaults';
 import type { CatalogItem, Category } from '../model/types';
 import { href } from '../router';
-import { downloadJson } from '../store/backup';
-import { catalog, deleteCatalogItem, deleteCategory, exportData, setCategories, settings, upsertCatalogItem } from '../store/store';
-import { ImportButton } from './ImportButton';
+import { catalog, deleteCatalogItem, deleteCategory, setCategories, settings, upsertCatalogItem } from '../store/store';
+import { CatalogSyncCard } from './CatalogSync';
 import { PackagesCard } from './PackagesCard';
-import { backupFileName } from './QuotesList';
 
 export function CatalogView() {
   const { categories, items } = catalog.value;
@@ -23,28 +20,15 @@ export function CatalogView() {
     <div class="page">
       <div class="page__head">
         <h1 class="page__title">קטלוג ומחירון</h1>
-        <div class="btn-row">
-          <button
-            type="button"
-            class="btn"
-            onClick={() => {
-              downloadJson(exportData('catalog'), backupFileName('catalog'));
-              toast('קובץ המחירון נשמר');
-            }}
-          >
-            <Icon name="pdf" />
-            ייצוא מחירון
-          </button>
-          <ImportButton label="טעינת מחירון" />
-        </div>
       </div>
+
+      <CatalogSyncCard />
 
       <div class="notice notice--info">
         <Icon name="lock" />
         <span>
-          המחירון נשמר רק במכשיר זה ובקבצים שאתם מייצאים — לא באתר עצמו. המחירים בקטלוג{' '}
-          <strong>{settings.value.catalogPricesIncludeVat ? 'כוללים מע"מ' : 'אינם כוללים מע"מ'}</strong> (
-          <a href={href.settings}>שינוי בהגדרות</a>).
+          המחירים בקטלוג <strong>{settings.value.catalogPricesIncludeVat ? 'כוללים מע"מ' : 'אינם כוללים מע"מ'}</strong> (
+          <a href={href.settings}>שינוי בהגדרות</a>). הקטלוג נשמר במכשיר, ובאתר הוא נשמר מוצפן בסיסמה.
         </span>
       </div>
 

@@ -53,25 +53,34 @@ JavaScript PDF libraries were rejected. `jsPDF` and `pdfmake` do not handle bidi
 GitHub Pages sites, and the repository on a free plan, are public. The design keeps anything sensitive out of
 them:
 
-- **The site's files contain only the app and the branding** (logo, company name, ח.פ., address and standard
-  terms). All of these already appear on every quote.
-- **The price list, quotes and customer details live only in the browser's IndexedDB** on each device. Nothing is
-  sent to any server.
-- **Moving data between devices** uses files the user holds:
-  - **Price list file** (Catalog → ייצוא מחירון / טעינת מחירון): the owner keeps a master price list, for example
-    on Google Drive, and loads it on each device.
-  - **Full backup** (Settings → גיבוי ושחזור): catalog, settings and all quotes.
-  - Exported files end in `.backup.json`, which `.gitignore` blocks from the repository.
+- **The site's files contain the app, the branding** (logo, company name, ח.פ., address and standard terms, all of
+  which already appear on every quote), **and the shared catalog encrypted with a password**.
+- **Quotes and customer details live only in the browser's IndexedDB** on each device and are never uploaded.
+- **Shared catalog** (see `docs/CATALOG-GUIDE.md` for the step-by-step user guide):
+  - The owner edits the catalog in the app or in Excel (export → edit → import, with a preview of every change).
+  - **פרסום לאתר** encrypts `{catalog, catalogPricesIncludeVat}` with the catalog password (PBKDF2-SHA256, 310,000
+    iterations → AES-256-GCM, in the browser) and commits it as `public/catalog.enc.json` through the GitHub
+    contents API. The commit triggers the normal CI deploy (about 1–2 minutes).
+  - The commit uses a fine-grained personal access token limited to this repository's contents. The token and the
+    catalog password are stored only in that device's browser (localStorage). They are never in backups, the
+    repository or the published file.
+  - Every device fetches `catalog.enc.json` on launch and when the app returns to the foreground. A newer catalog
+    is installed automatically once the device knows the password. If this device has unpublished catalog
+    changes, it asks instead of overwriting them.
+  - Without a token, publishing downloads the encrypted file and walks the user through uploading it on GitHub's
+    website.
+  - Only `publishedAt` is readable without the password. Choose a long password: the file is public, so a short
+    one could be brute-forced offline.
+- **Full backup** (Settings → גיבוי ושחזור): catalog, settings and all quotes, as a local file. Exported files end
+  in `.backup.json`, which `.gitignore` blocks from the repository.
 - Browsers can evict site data. The app requests persistent storage, and installing it to the home screen protects
   data on iOS. The quotes list reminds the user to back up every 14 days.
 
 **Options if you need more privacy later**
 
-1. Encrypt backup and price-list files with a passphrase (AES-GCM in the browser). The encrypted file could even
-   be stored in the repository and loaded on every device.
-2. Make the app itself private: move hosting to **Cloudflare Pages + Cloudflare Access** (free for up to 50 users;
+1. Make the app itself private: move hosting to **Cloudflare Pages + Cloudflare Access** (free for up to 50 users;
    visitors sign in with an email code). The repository can then be private too.
-3. Shared data across staff (one catalog, shared quote numbering): add a hosted database such as Supabase or
+2. Shared quotes across staff (shared quote numbering, one quotes list): add a hosted database such as Supabase or
    Firebase, both of which have free tiers. This is the point at which a backend becomes necessary.
 
 ## How it is built
@@ -81,9 +90,10 @@ src/
   brand/        LOCKED: company details, labels, standard terms, logo
   styles/       document.css (LOCKED quote design), app.css (editor UI), print.css
   doc/          quote document: view model, A4 pagination, page components
-  lib/          pure logic: money (integer agorot), VAT/pricing, dates, numbering, item ordering
+  lib/          pure logic: money (integer agorot), VAT/pricing, dates, numbering, item ordering,
+                packages, Excel conversion, encryption
   model/        data types, defaults, validation of stored and imported data
-  store/        state (Preact signals), IndexedDB persistence, backup files
+  store/        state (Preact signals), IndexedDB persistence, backup files, catalog publishing (sync.ts)
   views/        quotes list, quote editor, catalog, settings
 ```
 
@@ -114,6 +124,6 @@ installable offline PWA, Hebrew RTL UI for phone, tablet and desktop.
 2. Share: WhatsApp and email with the PDF, using the Web Share API on phones.
 3. Drag-and-drop reordering, in addition to the arrow buttons.
 4. Internal cost per catalog item and a margin readout in the editor. It stays local and never appears on the PDF.
-5. Encrypted price-list and backup files.
+5. ~~Shared catalog~~ (done): Excel export/import and encrypted publishing to every device (see above).
 6. English interface and English quote template.
 7. If several staff members need shared data: private hosting and/or a small hosted database (see above).

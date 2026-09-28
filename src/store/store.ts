@@ -18,6 +18,25 @@ export const ready = signal(false);
 export const storageAvailable = signal(true);
 export const storagePersisted = signal(false);
 
+/** Relation between this device's catalog and the one published to the site. */
+export interface CatalogSyncState {
+  /** publishedAt of the published catalog this device last loaded or published. */
+  publishedAt: string | null;
+  /** Local catalog edits not yet published. */
+  dirty: boolean;
+}
+export const catalogSync = signal<CatalogSyncState>({ publishedAt: null, dirty: false });
+
+export function setCatalogSync(next: CatalogSyncState): void {
+  catalogSync.value = next;
+  scheduleSave('catalogSync', () => catalogSync.value);
+}
+
+function normalizeSync(v: unknown): CatalogSyncState {
+  const o = (v ?? {}) as Partial<CatalogSyncState>;
+  return { publishedAt: typeof o.publishedAt === 'string' ? o.publishedAt : null, dirty: o.dirty === true };
+}
+
 const sortQuotes = (list: Quote[]) => list.slice().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
 export async function initStore(): Promise<void> {
@@ -33,6 +52,9 @@ export async function initStore(): Promise<void> {
     batch(() => {
       if (all.has('settings')) settings.value = normalizeSettings(all.get('settings'));
       if (all.has('catalog')) catalog.value = normalizeCatalog(all.get('catalog'));
+      if (all.has('catalogSync')) catalogSync.value = normalizeSync(all.get('catalogSync'));
+      // Catalogs built before publishing existed count as unpublished work, so a published one never silently replaces them.
+      else if (catalog.value.items.length > 0) catalogSync.value = { publishedAt: null, dirty: true };
       quotes.value = sortQuotes(loaded);
     });
     storagePersisted.value = await requestPersistence();
@@ -46,6 +68,9 @@ export async function initStore(): Promise<void> {
 // ---------- settings ----------
 
 export function updateSettings(patch: Partial<Settings>): void {
+  const basisChanged =
+    patch.catalogPricesIncludeVat !== undefined && patch.catalogPricesIncludeVat !== settings.value.catalogPricesIncludeVat;
+  if (basisChanged) setCatalogSync({ ...catalogSync.value, dirty: true });
   settings.value = { ...settings.value, ...patch };
   scheduleSave('settings', () => settings.value);
 }
@@ -208,6 +233,25 @@ export function deletePackage(id: string): void {
 function putCatalog(next: Catalog): void {
   catalog.value = next;
   scheduleSave('catalog', () => catalog.value);
+  if (!catalogSync.value.dirty) setCatalogSync({ ...catalogSync.value, dirty: true });
+}
+
+/** Replaces the whole catalog (e.g. after an Excel import). Counts as a local change to publish. */
+export function replaceCatalog(next: Catalog): void {
+  putCatalog(next);
+}
+
+/** Installs the catalog published to the site; this device is then in sync with it. */
+export function applyPublishedCatalog(next: Catalog, catalogPricesIncludeVat: boolean, publishedAt: string): void {
+  batch(() => {
+    catalog.value = next;
+    scheduleSave('catalog', () => catalog.value);
+    if (settings.value.catalogPricesIncludeVat !== catalogPricesIncludeVat) {
+      settings.value = { ...settings.value, catalogPricesIncludeVat };
+      scheduleSave('settings', () => settings.value);
+    }
+    setCatalogSync({ publishedAt, dirty: false });
+  });
 }
 
 export function upsertCatalogItem(item: CatalogItem): void {
@@ -263,4 +307,5 @@ export async function importData(file: BackupFile): Promise<void> {
     catalog.value = file.catalog;
     quotes.value = sortQuotes(nextQuotes);
   });
+  setCatalogSync({ ...catalogSync.value, dirty: true });
 }
