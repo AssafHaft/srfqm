@@ -1,0 +1,20 @@
+{
+  "id": "demo",
+  "number": "Q-2026-0042",
+  "status": "draft",
+  "issueDate": "2026-09-27",
+  "validDays": 7,
+  "eventDate": "2026-10-08",
+  "customer": { "name": "יום הולדת 12 לנועה", "details": "אירוע בפארק הגלישה", "phone": "050-0000000", "email": "" },
+  "items": [
+    { "id": "a", "categoryId": "events", "name": "שיעור גלישה קבוצתי", "description": "60 דקות · מדריך מוסמך לכל 6 משתתפים", "qty": 20, "unitPrice": 150, "priceIncludesVat": true },
+    { "id": "b", "categoryId": "equipment", "name": "השכרת חליפות גלישה", "description": "מידות ילדים ומבוגרים", "qty": 20, "unitPrice": 25, "priceIncludesVat": true },
+    { "id": "c", "categoryId": "food", "name": "מגש פיצות משפחתי", "description": "8 משולשים · כולל אפשרות טבעונית", "qty": 5, "unitPrice": 89.9, "priceIncludesVat": true }
+  ],
+  "pricesIncludeVat": true,
+  "vatRate": 18,
+  "discount": { "type": "percent", "value": 5, "includesVat": true },
+  "notes": "ביצוע ההזמנה מותנה באישור ההצעה בחתימה.\nמועד ההגעה יתואם מראש.",
+  "createdAt": "2026-09-27T10:00:00.000Z",
+  "updatedAt": "2026-09-27T10:00:00.000Z"
+}

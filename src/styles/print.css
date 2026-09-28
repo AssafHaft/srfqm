@@ -1,0 +1,34 @@
+/* Printing = exporting the PDF. Only the pre-paginated pages are printed, edge to edge. */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+#print-root {
+  display: none;
+}
+
+@media print {
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  body > *:not(#print-root) {
+    display: none !important;
+  }
+
+  #print-root {
+    display: block !important;
+  }
+
+  #print-root .qd-page {
+    break-after: page;
+  }
+
+  #print-root .qd-page:last-child {
+    break-after: auto;
+  }
+}
