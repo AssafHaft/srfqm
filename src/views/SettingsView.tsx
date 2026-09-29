@@ -4,6 +4,7 @@ import { Field, NumberField, Segmented, TextAreaField, TextField } from '../comp
 import { formatDate } from '../lib/dates';
 import { formatQuoteNumber, takeQuoteNumber } from '../lib/numbering';
 import { settings, storageAvailable, storagePersisted, updateSettings } from '../store/store';
+import { CloudCard } from './CloudCard';
 import { ImportButton } from './ImportButton';
 import { downloadBackup } from './QuotesList';
 
@@ -15,6 +16,8 @@ export function SettingsView() {
       <div class="page__head">
         <h1 class="page__title">הגדרות</h1>
       </div>
+
+      <CloudCard />
 
       <section class="card">
         <div class="card__head">

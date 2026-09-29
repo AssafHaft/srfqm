@@ -39,6 +39,44 @@ function normalizeSync(v: unknown): CatalogSyncState {
 
 const sortQuotes = (list: Quote[]) => list.slice().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
+// ---------- change hooks (used by cloud sync) ----------
+
+export type LocalQuoteChange = { type: 'put'; quote: Quote } | { type: 'delete'; id: string; at: string };
+const quoteListeners = new Set<(change: LocalQuoteChange) => void>();
+const settingsListeners = new Set<(settings: Settings) => void>();
+
+/** Subscribes to quote changes made on this device (changes applied from the cloud are not reported). */
+export function onLocalQuoteChange(fn: (change: LocalQuoteChange) => void): () => void {
+  quoteListeners.add(fn);
+  return () => quoteListeners.delete(fn);
+}
+
+export function onLocalSettingsChange(fn: (settings: Settings) => void): () => void {
+  settingsListeners.add(fn);
+  return () => settingsListeners.delete(fn);
+}
+
+/**
+ * Set by cloud sync: gives a new quote a number from the shared counter, so two devices never
+ * issue the same number. Returns the shared number, or null to keep the local one.
+ */
+let sharedNumbering: null | ((q: Quote) => Promise<string | null>) = null;
+export function setSharedNumbering(fn: typeof sharedNumbering): void {
+  sharedNumbering = fn;
+}
+
+function assignSharedNumber(q: Quote): void {
+  if (!sharedNumbering) return;
+  const provisional = q.number;
+  void sharedNumbering(q)
+    .then((shared) => {
+      if (!shared || shared === provisional) return;
+      const current = getQuote(q.id);
+      if (current && current.number === provisional) updateQuote(q.id, (d) => void (d.number = shared));
+    })
+    .catch(() => undefined);
+}
+
 export async function initStore(): Promise<void> {
   try {
     const all = await loadAll();
@@ -67,12 +105,13 @@ export async function initStore(): Promise<void> {
 
 // ---------- settings ----------
 
-export function updateSettings(patch: Partial<Settings>): void {
+export function updateSettings(patch: Partial<Settings>, fromRemote = false): void {
   const basisChanged =
     patch.catalogPricesIncludeVat !== undefined && patch.catalogPricesIncludeVat !== settings.value.catalogPricesIncludeVat;
   if (basisChanged) setCatalogSync({ ...catalogSync.value, dirty: true });
   settings.value = { ...settings.value, ...patch };
   scheduleSave('settings', () => settings.value);
+  if (!fromRemote) settingsListeners.forEach((fn) => fn(settings.value));
 }
 
 // ---------- quotes ----------
@@ -81,9 +120,19 @@ export function getQuote(id: string): Quote | undefined {
   return quotes.value.find((q) => q.id === id);
 }
 
-function putQuote(q: Quote): void {
+function putQuote(q: Quote, fromRemote = false): void {
   quotes.value = sortQuotes([q, ...quotes.value.filter((x) => x.id !== q.id)]);
   scheduleSave(QUOTE_PREFIX + q.id, () => getQuote(q.id));
+  if (!fromRemote) quoteListeners.forEach((fn) => fn({ type: 'put', quote: q }));
+}
+
+/** Installs a quote received from the cloud. */
+export function applyRemoteQuote(q: Quote): void {
+  putQuote(q, true);
+}
+
+export function applyRemoteDelete(id: string): void {
+  if (getQuote(id)) deleteQuote(id, true);
 }
 
 function nextNumber(): string {
@@ -112,6 +161,7 @@ export function createQuote(): Quote {
     updatedAt: now,
   };
   putQuote(q);
+  assignSharedNumber(q);
   return q;
 }
 
@@ -141,6 +191,7 @@ export function duplicateQuote(id: string): Quote | undefined {
     updatedAt: now,
   };
   putQuote(copy);
+  assignSharedNumber(copy);
   return copy;
 }
 
@@ -152,14 +203,16 @@ export function discardIfPristine(id: string): void {
   const q = getQuote(id);
   if (!q || q.items.length > 0 || q.customer.name.trim() || q.createdAt !== q.updatedAt) return;
   deleteQuote(id);
+  if (sharedNumbering) return; // shared numbers are never reused
   const s = settings.value;
   const { number: previous } = takeQuoteNumber({ ...s, nextNumber: s.nextNumber - 1 });
   if (s.nextNumber > 1 && previous === q.number) updateSettings({ nextNumber: s.nextNumber - 1 });
 }
 
-export function deleteQuote(id: string): void {
+export function deleteQuote(id: string, fromRemote = false): void {
   quotes.value = quotes.value.filter((q) => q.id !== id);
   scheduleSave(QUOTE_PREFIX + id, () => undefined);
+  if (!fromRemote) quoteListeners.forEach((fn) => fn({ type: 'delete', id, at: new Date().toISOString() }));
 }
 
 export function lineFromCatalog(item: CatalogItem): LineItem {

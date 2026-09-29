@@ -6,8 +6,9 @@ exports quotes as PDFs that match the approved sample design. The interface is i
 - **Architecture, trade-offs, privacy model and roadmap:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **Updating the catalog on every device (Excel → publish):** [docs/CATALOG-GUIDE.md](docs/CATALOG-GUIDE.md)
   (Hebrew, step by step, no Git knowledge needed).
-- The catalog is published to the site **encrypted with a password**. Quotes and customer data stay in the browser
-  on each device and in backup files you export; they are never uploaded.
+- **Syncing quotes between devices and staff (Firebase, one-time setup):** [docs/SYNC-GUIDE.md](docs/SYNC-GUIDE.md)
+- The catalog is published to the site **encrypted with a password**. Quotes stay in the browser on each device and,
+  once sync is set up, in your own Firebase project (access limited to users you approve).
 
 ## Using it
 
@@ -28,9 +29,10 @@ protects the stored data.
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm test             # unit tests (pricing, VAT, pagination, backups)
+npm test             # unit tests (pricing, VAT, pagination, backups, sync merge)
 npm run build        # typecheck + production build into dist/
 npx vite preview --port 4173 & node scripts/smoke.mjs   # end-to-end smoke test in headless Chromium
+node scripts/cloud-e2e.mjs   # quote sync against the Firebase emulators (needs Java; preview server running)
 node scripts/render-pdf.mjs fixtures/demo-quote.json test-output/demo.pdf   # render a fixture to PDF (needs npm run dev)
 ```
 
@@ -39,8 +41,8 @@ Locked branding lives in `src/brand/brand.ts` (company details, labels, standard
 
 ## Deployment (GitHub Pages)
 
-The workflow in `.github/workflows/ci.yml` runs tests, the build and a browser smoke test on every PR. On every
-push to `main` it also deploys to GitHub Pages.
+`.github/workflows/ci.yml` runs the unit tests, the build and both browser suites on every PR.
+`.github/workflows/deploy.yml` builds and deploys every push to `main` (including catalog publishes) in about a minute.
 
 One-time setup: **Settings → Pages → Build and deployment → Source: GitHub Actions**. The site is then served at
 `https://assafhaft.github.io/srfqm/`.

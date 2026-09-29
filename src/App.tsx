@@ -1,6 +1,8 @@
 import { signal } from '@preact/signals';
 import { Icon, type IconName } from './components/icons';
 import { Toasts } from './components/toast';
+import { cloudState } from './cloud/cloud';
+import { CLOUD_STATUS } from './views/CloudCard';
 import { href, route } from './router';
 import { ready, storageAvailable } from './store/store';
 import { CatalogView } from './views/CatalogView';
@@ -27,6 +29,16 @@ export function App() {
           <img src="./favicon.png" alt="" width="28" height="28" />
           <span>מחולל הצעות מחיר</span>
         </a>
+        {cloudState.value !== 'off' && (
+          <a
+            class={`topbar__cloud cloud-pill cloud-pill--${cloudState.value}`}
+            href={href.settings}
+            title={`סנכרון: ${CLOUD_STATUS[cloudState.value]}`}
+          >
+            <Icon name="cloud" size={16} />
+            <span>{CLOUD_STATUS[cloudState.value]}</span>
+          </a>
+        )}
         <nav class="topbar__nav" aria-label="ניווט ראשי">
           {NAV.map((n) => (
             <a key={n.to} href={n.to} class={`topbar__link${n.match.includes(r.name) ? ' is-active' : ''}`}>

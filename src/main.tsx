@@ -8,11 +8,13 @@ import { App, updateReady } from './App';
 import { watchFonts } from './fonts';
 import { initStore } from './store/store';
 import { checkPublishedCatalog } from './store/sync';
+import { initCloud } from './cloud/cloud';
 import { toast } from './components/toast';
 
 watchFonts();
 void initStore().then(async () => {
   if (await checkPublishedCatalog(true)) toast('הקטלוג עודכן מהאתר');
+  await initCloud();
 });
 render(<App />, document.getElementById('app')!);
 

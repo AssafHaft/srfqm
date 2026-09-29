@@ -55,7 +55,8 @@ them:
 
 - **The site's files contain the app, the branding** (logo, company name, ח.פ., address and standard terms, all of
   which already appear on every quote), **and the shared catalog encrypted with a password**.
-- **Quotes and customer details live only in the browser's IndexedDB** on each device and are never uploaded.
+- **Quotes** live in the browser's IndexedDB on each device. With **quote sync** enabled they are also mirrored to
+  the owner's own Firebase project (see below). Neither the repository nor the site holds them.
 - **Shared catalog** (see `docs/CATALOG-GUIDE.md` for the step-by-step user guide):
   - The owner edits the catalog in the app or in Excel (export → edit → import, with a preview of every change).
   - **פרסום לאתר** encrypts `{catalog, catalogPricesIncludeVat}` with the catalog password (PBKDF2-SHA256, 310,000
@@ -76,12 +77,41 @@ them:
 - Browsers can evict site data. The app requests persistent storage, and installing it to the home screen protects
   data on iOS. The quotes list reminds the user to back up every 14 days.
 
+## Quote sync between devices (Firebase)
+
+User guide (Hebrew): `docs/SYNC-GUIDE.md`.
+
+- **Service**: the owner's own Firebase project (free Spark plan): Firestore for data, Firebase Auth for e-mail and
+  password sign-in. The SDK is lazy-loaded (about 180 KB gzipped), so devices without sync never download it.
+- **Configuration**: a setup wizard in Settings generates the Firestore security rules and reads the
+  `firebaseConfig` snippet. It publishes `public/cloud.json` through the GitHub token, or through a guided manual
+  upload, so every device finds the project on its own. The Firebase web config is not secret; the rules enforce
+  access.
+- **Access control** (security rules): only accounts with a **verified e-mail** that are the owner or listed in
+  `/members` can read or write. The owner manages `/members` from the app. Anyone else, including other signed-in
+  accounts, is denied. This is verified by the emulator test.
+- **Data model**: `quotes/{id}` holds `{data, updatedAt, deleted, updatedBy}`. Deletions are tombstones, so a device
+  that was offline still learns about them. `meta/settings` holds the shared settings. `meta/counter` is the
+  shared quote-number counter, advanced in a transaction and seeded above the highest existing number.
+- **Sync engine** (`src/cloud/cloud.ts`, pure merge in `merge.ts`):
+  - IndexedDB stays the working copy, so the app works offline.
+  - On sign-in, local and cloud quotes are merged by `updatedAt` (last edit wins), against the server's answer
+    rather than a possibly incomplete cache.
+  - After that, local edits upload debounced by 700 ms, and remote changes apply live through a Firestore
+    listener. The Firestore offline cache queues writes made without a connection.
+- **Tests**: `scripts/cloud-e2e.mjs` runs two browser "devices" against the local Firebase emulators:
+  - The owner runs the setup wizard, and the generated rules are loaded into the emulator.
+  - Sign-up and e-mail verification work, and a quote made before sync uploads.
+  - Live sync works both ways, including edits and deletions.
+  - Quote numbers are unique across devices, and settings sync.
+  - An offline edit reaches the other device after reconnecting.
+  - A signed-in account that the owner did not add is denied.
+
 **Options if you need more privacy later**
 
 1. Make the app itself private: move hosting to **Cloudflare Pages + Cloudflare Access** (free for up to 50 users;
    visitors sign in with an email code). The repository can then be private too.
-2. Shared quotes across staff (shared quote numbering, one quotes list): add a hosted database such as Supabase or
-   Firebase, both of which have free tiers. This is the point at which a backend becomes necessary.
+
 
 ## How it is built
 
@@ -94,6 +124,7 @@ src/
                 packages, Excel conversion, encryption
   model/        data types, defaults, validation of stored and imported data
   store/        state (Preact signals), IndexedDB persistence, backup files, catalog publishing (sync.ts)
+  cloud/        quote sync through Firebase: config and rules, merge logic, SDK wrapper, sync engine
   views/        quotes list, quote editor, catalog, settings
 ```
 
@@ -126,4 +157,4 @@ installable offline PWA, Hebrew RTL UI for phone, tablet and desktop.
 4. Internal cost per catalog item and a margin readout in the editor. It stays local and never appears on the PDF.
 5. ~~Shared catalog~~ (done): Excel export/import and encrypted publishing to every device (see above).
 6. English interface and English quote template.
-7. If several staff members need shared data: private hosting and/or a small hosted database (see above).
+7. ~~Quote sync between devices and staff~~ (done): Firebase, see above.

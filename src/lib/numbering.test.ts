@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS } from '../model/defaults';
-import { takeQuoteNumber } from './numbering';
+import { highestSeq, parseQuoteNumber, takeQuoteNumber } from './numbering';
 import { addDays, daysBetween, formatDate, formatDateShort } from './dates';
 
 describe('takeQuoteNumber', () => {
@@ -24,5 +24,14 @@ describe('dates', () => {
     expect(formatDateShort('2026-10-08')).toBe('08.10.26');
     expect(daysBetween('2026-09-27', '2026-10-04')).toBe(7);
     expect(formatDate('')).toBe('');
+  });
+});
+
+describe('parseQuoteNumber / highestSeq', () => {
+  it('reads numbers back, ignoring other years and free-form numbers', () => {
+    expect(parseQuoteNumber('Q-2026-0042')).toEqual({ year: 2026, seq: 42 });
+    expect(parseQuoteNumber('SP-2026-12')).toEqual({ year: 2026, seq: 12 });
+    expect(parseQuoteNumber('ללא')).toBeNull();
+    expect(highestSeq(['Q-2026-0003', 'Q-2025-0100', 'Q-2026-0010', 'x'], 2026)).toBe(10);
   });
 });

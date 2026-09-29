@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { Icon } from '../components/icons';
+import { cloudState } from '../cloud/cloud';
 import { toast } from '../components/toast';
 import { formatDate } from '../lib/dates';
 import { formatILS } from '../lib/money';
@@ -24,6 +25,8 @@ export function downloadBackup(): void {
 
 function needsBackup(): boolean {
   if (quotes.value.length === 0) return false;
+  // With cloud sync the quotes already live on the server as well.
+  if (['synced', 'syncing', 'offline'].includes(cloudState.value)) return false;
   const last = settings.value.lastBackupAt;
   return !last || Date.now() - Date.parse(last) > BACKUP_REMINDER_DAYS * 86_400_000;
 }
@@ -46,6 +49,16 @@ export function QuotesList() {
           הצעה חדשה
         </button>
       </div>
+
+      {(cloudState.value === 'signed-out' || cloudState.value === 'unverified' || cloudState.value === 'not-member') && (
+        <div class="notice">
+          <Icon name="cloud" />
+          <span>כדי לראות כאן את ההצעות מכל המכשירים, התחברו לסנכרון.</span>
+          <a class="btn btn--sm" href={href.settings}>
+            להתחברות
+          </a>
+        </div>
+      )}
 
       {needsBackup() && (
         <div class="notice">

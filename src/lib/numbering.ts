@@ -14,3 +14,17 @@ export function takeQuoteNumber(settings: Settings, now: Date = new Date()): { n
     settings: { ...settings, numberYear: year, nextNumber: seq + 1 },
   };
 }
+
+/** Reads the year and running number back from a quote number such as "Q-2026-0042". */
+export function parseQuoteNumber(number: string): { year: number; seq: number } | null {
+  const m = /(\d{4})-(\d+)\s*$/.exec(number);
+  return m ? { year: Number(m[1]), seq: Number(m[2]) } : null;
+}
+
+/** Highest running number already used in `year`, so a shared counter never re-issues an existing number. */
+export function highestSeq(numbers: string[], year: number): number {
+  return numbers.reduce((max, n) => {
+    const p = parseQuoteNumber(n);
+    return p && p.year === year ? Math.max(max, p.seq) : max;
+  }, 0);
+}
