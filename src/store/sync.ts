@@ -203,6 +203,21 @@ export async function publishToGithub(overwrite = false): Promise<void> {
   setCatalogSync({ publishedAt: file.publishedAt, dirty: false });
 }
 
+/** Commits any text file to the repository's main branch (creating or replacing it). */
+export async function commitFileToGithub(path: string, text: string, message: string): Promise<void> {
+  const token = githubToken.value;
+  if (!token) throw new PublishError('לא הוגדר מפתח גישה ל-GitHub.');
+  const current = await github(`/contents/${path}?ref=${REPO.branch}`, token);
+  let sha: string | undefined;
+  if (current.ok) sha = ((await current.json()) as { sha: string }).sha;
+  else if (current.status !== 404) throw new PublishError(explain(current.status));
+  const res = await github(`/contents/${path}`, token, {
+    method: 'PUT',
+    body: JSON.stringify({ message, content: textToBase64(text), branch: REPO.branch, ...(sha ? { sha } : {}) }),
+  });
+  if (!res.ok) throw new PublishError(explain(res.status));
+}
+
 /** Manual alternative: the owner uploads this file on the GitHub website. */
 export async function prepareManualPublish(): Promise<{ file: EncryptedFile; blob: Blob }> {
   const file = await buildPublishedFile();
